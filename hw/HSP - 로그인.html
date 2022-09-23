@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<!-- saved from url=(0221)https://portal.hwgeneralins.com/3rdParty/loginFormPage.jsp?NONCE=PviGE7J%2Fw8RME1l6pkI5njh47650WyA9kmbR0850bebO%2BrGqTq1mp8%2B4CCw0H0s9cg7GpwPzuwkW%2FHWKJbatDA%3D%3D&UURL=https%3A%2F%2Fportal.hwgeneralins.com%2Fnls3%2Ffcs -->
+<html lang="ko"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<title> HSP - 로그인 </title>
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta content="width=device-width, initial-scale=1" name="viewport">
+<link href="./hw/font-awesome.min.css" rel="stylesheet" type="text/css">
+<link href="./hw/simple-line-icons.min.css" rel="stylesheet" type="text/css">
+<link href="./hw/bs.css" rel="stylesheet" type="text/css">
+<link href="./hw/hsp.css" rel="stylesheet" type="text/css">
+
+<script language="javascript" src="./hw/ajax.js.다운로드"></script>
+<script language="javascript" src="./hw/isMobile.js.다운로드"></script>
+<script language="javascript" src="./hw/placeholders.min.js.다운로드"></script>
+<script language="javascript" src="./hw/jquery-3.2.1.min.js.다운로드"></script>
+
+
+<script type="text/javascript" src="./hw/crosswebex6.js.다운로드"></script><script type="text/javascript" src="./hw/bluebird-3.5.0.min.js.다운로드"></script><script type="text/javascript" src="./hw/cw_web6_adt.js.다운로드"></script><script type="text/javascript" src="./hw/cw_web6_neo_adt.js.다운로드"></script><script type="text/javascript" src="./hw/initechGlobal.js.다운로드"></script><link rel="stylesheet" type="text/css" href="./hw/jquery-ui.css"><link rel="stylesheet" type="text/css" href="./hw/jquery-ui.theme.css"><link rel="stylesheet" type="text/css" href="./hw/pc_certificate.css"><script type="text/javascript" src="./hw/exproto.js.다운로드"></script><script type="text/javascript" src="./hw/exinstall.js.다운로드"></script><script type="text/javascript" src="./hw/exinterface.js.다운로드"></script><script type="text/javascript" src="./hw/exproto_ext_daemon.js.다운로드"></script><script type="text/javascript" src="./hw/crosswebexInit.js.다운로드"></script>
+
+
+<script type="text/javascript">
+/**
+ * 로그인 진행중인 상태 정보 저장
+ * 2008-11-18, 박성우
+ */
+var isLogining = false;
+
+
+	function SecureCertSubmit() {
+		if (getCookie("hwgi_iniwebex_help") != 'Y') {
+			window.open('popupAuthGuide.jsp', 'hwgi_iniwebex_help', 'width=820,height=650,scrollbars,resizable');
+		}
+
+		INIWEBEX.login({
+			loginType	: "sign",			// 로그인 타입 (sign : 인증서 로그인 / enc : 암호화 + 인증서 로그인)
+			data		: "login",			// 로그인 서명에 사용할 임의의 값
+			isHtml5		: true,				// HTML5 UI 사용 여부 (true : 사용, false : CS UI사용)
+			viewType 	: "NONE",			// 원문 영역 스타일 (NONE : 안보임, GRID : name | value형식, TEXT : string형식)
+			iniCache	: true,				// 필터링 등 캐시된 인증서 초기화 여부
+			vid			: true,             // 본인확인을 위한 R값 포함여부(사설인증서 경우만 로그인 시 VID를 false로 함)
+			langType	: "KOR",
+			processCallback: SendForm,		// 콜백함수
+			isCmp : false,
+			filterCertByIssuer : {enable:false, list:''}, // IssuerDN 필터링 (enable:true-사용, enable:false-미사용)
+			filterCertByOIDAlias : {enable:false, list:''} // OID-Alias 필터링 (enable:true-사용, enable:false-미사용)
+		});
+	}
+	
+	function SendForm(result, postData) {
+		if (result) {
+			document.sendForm.INIpluginData.value = result;
+			document.sendForm.userid.value = document.readForm.userid.value;
+			document.sendForm.password.value = document.readForm.password.value;
+			document.sendForm.action = "idPasswordLogin_v2.jsp";
+			document.sendForm.submit();
+		}else{
+			if (INI_ALERT)
+				INI_ALERT("로그인에 실패하였습니다.");
+			else
+				alert("로그인에 실패하였습니다.");
+		}
+	}
+
+	function pre_check() {
+		var loginForm = document.readForm;
+
+		if (loginForm.userid.value == '') {
+			alert('아이디를 입력하세요');
+			loginForm.userid.focus();
+			return false;
+		} else if (loginForm.password.value == '') {
+			alert('비밀번호를 입력하세요');
+			loginForm.password.focus();
+			return false;
+		} else if (checkRejectUserid()) {
+			return false;
+		} else {
+			// Ajax 구현부. loginFormPageDmzCheck.jsp 로 패스워드 사전 검증
+			var authCode = "";
+			var params = $(loginForm).serialize();
+			$.ajax({
+				url : 'hwgiApp/loginFormPageDmzCheck.jsp',
+				type : 'POST',
+				data : params,
+				dataType : 'text',
+				async : false,
+				success : function(data) {
+					authCode = $.trim(data);
+				}
+			});
+
+			if (authCode == '5401') {
+				// PASS LOGIN Failed.
+				alert('사용자 ID나 비밀번호가 잘못 입력되었습니다.');
+				return false;
+			}
+			
+			if (authCode == '5403' || authCode == '5411') {
+				// 5403 : 사용자 계정이 잠겨있습니다.
+				// 5411 : 패스워드 관리 정책에 의해 계정이 자동적으로 잠긴 상태입니다.
+				self.location.replace("/nls3/error.jsp?errorCode=" + authCode);
+				return false;
+			}
+			
+			insertAjaxContent('rssBox');
+		}
+	}
+
+	var rssBoxAjaxObjects = new Array();
+	function checkAjaxContent(ajaxIndex, boxId) {
+		var rssContent = rssBoxAjaxObjects[ajaxIndex].response;
+
+		eval("result = " + rssContent);
+
+		// 직원구분이 '대리점' 이면 인증서 로그인 없이 로그인한다.
+		// 01 : 대리점이면
+		// 02 : 그외이면
+		// 04 : 조사법인 직원인 경우 본인인증 사용
+		switch (eval(result.qresult)) {
+		case 1: // 직원구분이 '대리점' 이면 인증서 로그인 없이 로그인한다.
+			//2013-12-04 대리점, 사용인의경우도 인증서로그인 혹은 사용자인증프로세스를 태워야함
+			//SecureSubmit();                   
+			//break;
+			smslogin();
+			break;
+		case 2: // 인증서로 로그인한다.
+			SecureCertSubmit();
+			break;
+		case 3:
+			alert('아이디가 없습니다.');
+			break;
+		case 4:
+			alert('[업무 알림]\n조사법인 직원인 경우 포탈 로그인시\n공인인증서 사용이 불가하며,\n인증번호를 사용하셔야 합니다.');
+			break;
+		}
+	}
+
+	function insertAjaxContent(destinationId, secondBetweenSlides) {
+		var ajaxIndex = rssBoxAjaxObjects.length;
+		rssBoxAjaxObjects[ajaxIndex] = new sack();
+		rssBoxAjaxObjects[ajaxIndex].requestFile = 'hwgiApp/certLoginPreCheck.jsp?userid=' + document.readForm.userid.value; // Specifying which file to get
+		rssBoxAjaxObjects[ajaxIndex].onCompletion = function() {
+			checkAjaxContent(ajaxIndex, destinationId);
+		}; // Specify function that will be executed after file has been found
+		rssBoxAjaxObjects[ajaxIndex].runAJAX(); // Execute AJAX function
+	}
+
+
+	function SecureSubmit() {
+	    isLogining = true;
+	    document.readForm.submit();
+	    return false; 
+	}
+
+	function CheckSendForm(readForm, sendForm) {
+	    if (check_value()) {
+	        if (EncForm2(readForm, sendForm)) {
+	            sendForm.submit();
+	            // 2008-11-18, 박성우
+	            isLogining = true;
+	        } else {
+	            alert("보안상 문제가 생겨 전송이 취소 되었습니다.");
+	        }
+	        return false; //반드시false를 return;
+	    }
+	}
+
+function doLogin() {
+    /*
+     * 로그인중인 경우 다시 로그인 시도 불가 처리
+     * 2008-11-18, 박성우
+     */
+    if (isLogining) {
+        alert('로그인이 진행중입니다. 잠시만 기다려 주십시오.\n'
+                + '─────────────────────────────────\n'
+                + '※ 만약 장시간 응답이 없는 경우 F5키를 누른 뒤 다시 로그인 해주십시오.');
+        return false;
+    }
+    
+    
+        pre_check();
+    
+}
+
+
+	function check_value() {
+		var loginForm = document.readForm;
+		if (readForm.password.disabled == true) {
+			alert('[윈도우XP 사용 PC의 HSP포털 접속 차단 안내]\n\n내용 : 한화손해보험의 네트워크를 사용하는 PC(내부망)\n          - 2014년 7월 1일(화)에 접속 차단\n\n문의처 : IT헬프데스크(02-316-0111),\n            IT정보보호파트 강준희 매니저(02-316-7337),\n            IT정보보호파트 금한교 매니저(02-316-7371)\n\n윈도우 버전 확인법 : 시작>실행창>winver(엔터)\n\n윈도우 업그레이드 문의처 : PC 또는 노트북 제조사 A/S문의처');
+			return false;
+		}
+
+		if (loginForm.userid.value == '') {
+			alert('아이디를 입력하세요');
+			loginForm.userid.focus();
+			return false;
+		} else if (loginForm.password.value == '') {
+			alert('비밀번호를 입력하세요');
+			loginForm.password.focus();
+			return false;
+		} else if (checkRejectUserid()) {
+			return false;
+		} else {
+			//유효한 사용자인지 아닌지 체크
+			//insertAjaxContent('rssBox');
+		}
+
+	// Ajax 구현부. loginFormPageDmzCheck.jsp 로 패스워드 사전 검증
+		var authCode = "";
+		var params = $(loginForm).serialize();
+		$.ajax({
+			url : 'hwgiApp/loginFormPageDmzCheck.jsp',
+			type : 'POST',
+			data : params,
+			dataType : 'text',
+			async : false,
+			success : function(data) {
+				authCode = $.trim(data);
+			}
+		});
+
+		if (authCode == '5401') {
+			// PASS LOGIN Failed.
+			alert('사용자 ID나 비밀번호가 잘못 입력되었습니다.');
+			return false;
+		}
+		
+		if (authCode == '5403' || authCode == '5411') {
+			// 5403 : 사용자 계정이 잠겨있습니다.
+			// 5411 : 패스워드 관리 정책에 의해 계정이 자동적으로 잠긴 상태입니다.
+			self.location.replace("/nls3/error.jsp?errorCode=" + authCode);
+			return false;
+		}
+
+	return true;
+	}
+
+	function on_pwd_find() {
+		var loginForm = document.login;
+		var scr_url = '/3rdParty/hwgiApp/idPasswordSearchForm.jsp';
+		var scr_top = screen.availHeight / 3;
+		var scr_left = screen.availWidth / 3;
+		var scr_win_option = 'menubar=no,scrollbars=no,status=no,toolbar=no,width=700,height=500,top=' + scr_top + ',left=' + scr_left;
+
+		if (isMobile()) {
+			scr_win_option = 'menubar=no,scrollbars=no,status=no,toolbar=no,width=' + window.innerWidth + ',height=' + window.innerHeight;
+		}
+
+		window.open(scr_url, 'PASSWORD_SEARCH', scr_win_option);
+	}
+	function checkEnter(form) {
+		var key = event.keyCode;
+
+		if (key == 13) {
+
+			smslogin();
+
+			return true;
+		}
+		return false;
+	}
+	
+	function check_pw() {
+		var pw = readForm.password.value;
+		
+		var pwbox = document.getElementById("pwbox");
+		if (pwbox.classList) {
+			if (pw.length <= 0) {
+				pwbox.classList.remove('existence');
+			} else {
+				pwbox.classList.add('existence');
+			}
+		} else {
+			// For IE9
+			var classes = pwbox.className.split(" ");
+			if (pw.length <= 0) {
+				if (classes.length > 1) {
+					classes.pop()
+					pwbox.className = classes.join(" ");
+				}
+			} else {
+				if (classes.indexOf("existence") < 0) {
+					classes.push("existence");
+					pwbox.className = classes.join(" ");
+				}
+			}
+		}
+	}
+
+	function check_id() {
+		var id = readForm.userid.value;
+		id = id.replace(" ", "");
+		readForm.userid.value = id;
+		var digitCheck = /^[0-9]*$/;
+
+		var idbox = document.getElementById("idbox");
+		if (idbox.classList) {
+			if (id == '') {
+				idbox.classList.remove('existence');
+			} else {
+				idbox.classList.add('existence');
+			}
+		} else {
+			// For IE9
+			var classes = idbox.className.split(" ");
+			if (id == '') {
+				if (classes.length > 1) {
+					classes.pop()
+					idbox.className = classes.join(" ");
+				}
+			} else {
+				if (classes.indexOf("existence") < 0) {
+					classes.push("existence");
+					idbox.className = classes.join(" ");
+				}
+			}
+		}
+
+		if (id.length == 7 && readForm.password.disabled != true && digitCheck.test(id)) {
+
+			saveId(document.readForm);
+
+			readForm.password.focus();
+		}
+	}
+
+	function init() {
+		checkSave(document.readForm);
+		
+		var userIdField = document.getElementsByName("userid")[0];
+		var userid = sessionStorage.getItem("userid");
+
+		if (userid != null && userid != "") {
+			userIdField.value = userid;
+			sessionStorage.removeItem("userid");
+		}
+		
+		if (null != userIdField) {
+			userIdField.focus();
+		}
+
+		check_id();
+	}
+
+	function selectPasswordString() {
+
+		var passwordField = document.getElementsByName("password")[0];
+		passwordField.focus();
+		passwordField.select();
+	}
+
+	//즐겨찾기 추가
+	function bookmark() {
+		var addr = "https://" + location.hostname;
+
+		var title = "";
+
+		if (addr.indexOf("portaldev.hwtest.com") != -1) {
+			title = "HSP포털 - 개발계";
+		} else if (addr.indexOf("portal.hwtest.com") != -1) {
+			title = "HSP포털 - 테스트계";
+		} else {
+			title = "HSP포털";
+		}
+
+		try {
+			if ('addToHomescreen' in window && window.addToHomescreen.isCompatible) {
+				addToHomescreen({
+					autostart : false,
+					startDelay : 0
+				}).show(true);
+			} else if (window.external && ('AddFavorite' in window.external)) {
+				window.external.AddFavorite(addr, title);
+			} else {
+				alert('크롬 브라우저에서는 즐겨찾기 기능을 사용할 수 없습니다.');
+			}
+		} catch (e) {
+			alert('크롬 브라우저에서는 즐겨찾기 기능을 사용할 수 없습니다.');
+		}
+	}
+
+	function smslogin() {
+		if (isLogining) {
+			alert('로그인이 진행중입니다. 잠시만 기다려 주십시오.\n' + '─────────────────────────────────\n' + '※ 만약 장시간 응답이 없는 경우 F5키를 누른 뒤 다시 로그인 해주십시오.');
+			return false;
+		}
+
+		if (check_value()) {
+			var scr_win_option = 'width=600px,height=300px,menubar=no,scrollbars=no,status=no,toolbar=no';
+
+			if (isMobile()) {
+				scr_win_option = 'menubar=no,scrollbars=no,status=no,toolbar=no,width=' + window.innerWidth + ',height=' + window.innerHeight;
+			}
+
+			window.open('hwgiApp/smsloginForm.jsp?userid=' + document.readForm.userid.value + '&documentDomain=' + document.domain, 'smsloginForm', scr_win_option);
+		}
+	}
+
+	function smsloginCallBack() {
+		SecureSubmit();
+	}
+
+	/**
+	 * 최초설치프로그램 다운로드
+	 */
+	function DownLoadInstall() {
+		//    var url = encodeURI('./installFiles/HanwhaInstall_v2.exe');
+		var url = encodeURI('/wsrv/setup/HSP_Env_Setup.exe');
+		window.open(url, '_blank', 'width=1,height=1');
+	}
+
+	/* *********************************************************
+	 * 2010-01-06 박인규 아이디 저장 쿠키 설정 추가
+	 **********************************************************/
+
+	function setCookie(name, value, expires) {
+		document.cookie = name + "=" + escape(value) + "; path=/; expires=" + expires.toGMTString();
+	}
+
+	function getCookie(name) {
+		var search = name + "=";
+		if (document.cookie.length > 0) {
+			offset = document.cookie.indexOf(search);
+			if (offset != -1) {
+				offset += search.length;
+				end = document.cookie.indexOf(";", offset);
+				if (end == -1) {
+					end = document.cookie.length;
+				}
+				return unescape(document.cookie.substring(offset, end));
+			}
+		}
+		return "";
+	}
+
+	function saveId(form) {
+		var expdate = new Date();
+
+		if (form.checksave.checked) {
+			expdate.setTime(expdate.getTime() + 1000 * 3600 * 24 * 30);
+		} else {
+			expdate.setTime(expdate.getTime() - 1);
+		}
+
+		setCookie("portalID", form.userid.value, expdate);
+	}
+
+	/*
+	 * 2015-10-04 함수 수정. 황유상.
+	 */
+	function checkSave(form) {
+		var v = getCookie("portalID");
+		if (v != '') {
+			form.userid.value = v;
+			form.checksave.checked = true;
+		}
+	}
+
+	function checkRejectUserid() {
+		var rejectUserids = "3061919,3357026";
+		if (rejectUserids.indexOf(document.readForm.userid.value) != -1) {
+			alert("외부망 로그인이 제한된 사번입니다.\n내부망 포털을 이용해주세요.");
+
+			return true;
+		}
+
+		return false;
+	}
+	/**********************************************************/
+</script>
+
+<script type="text/javascript">
+	var timerid = null;
+	function rsupport() {
+		window.open('http://help.hwgi.kr', 'rsupport', '');
+	}
+
+	function guide() {
+		window.open('hwgiApp/login_guide.jsp', 'guide', 'width=700,height=880,scrollbars,resizable');
+	}
+</script>
+
+<script type="text/javascript" charset="utf-8" src="./hw/INIforgeCrypto.3.4.0.16.js.다운로드"></script><script type="text/javascript" charset="utf-8" src="./hw/cwui_conf.3.4.0.16.js.다운로드"></script><script type="text/javascript" charset="utf-8" src="./hw/cwui_core.3.4.0.16.js.다운로드"></script><script type="text/javascript" charset="utf-8" src="./hw/cwui.3.4.0.16.js.다운로드"></script><script type="text/javascript" src="./hw/3rd_interface.js.다운로드"></script></head>
+<body class="hsp-login2 login_2" onload="init();" style="cursor: default;">
+    <div class="back"></div>
+    <div class="wrap-login">
+        <header>
+            <h1>한화손해보험</h1>
+            <h2>Hanwha Smart Portal</h2>
+        </header>
+        <main>
+
+            <form name="readForm" action="https://portal.hwgeneralins.com/3rdParty/idPasswordLogin.jsp?UURL=https%3A%2F%2Fportal.hwgeneralins.com%2Fnls3%2Ffcs&amp;NONCE=PviGE7J%2Fw8RME1l6pkI5njh47650WyA9kmbR0850bebO%2BrGqTq1mp8%2B4CCw0H0s9cg7GpwPzuwkW%2FHWKJbatDA%3D%3D&amp;InitechEamNoCacheNonce=hfVpr%2FZdmfLpWOoWjG%2FmwQ%3D%3D" method="POST" onsubmit="return SecureSubmit(this);">
+            
+                <section class="login-area  etc-browser  ">
+                    <!-- 
+                    <input type="text" name="userid" placeholder="아이디" tabindex="1" value="" onKeyUp="check_id();">
+                    <input type="password" name="password" placeholder="비밀번호" maxlength="15" tabindex="2" mkdexcept="true" onkeydown="checkEnter(document.fm_search);">
+                     -->
+                    <div id="idbox" class="outbox">
+	                    <input type="text" id="userid" name="userid" tabindex="1" value="" onkeyup="check_id();"><label for="userid">아이디(사번)</label>
+                    </div>
+                    <div id="pwbox" class="outbox">
+	                    <input type="password" name="password" maxlength="15" tabindex="2" mkdexcept="true" onkeyup="check_pw();" onkeydown="checkEnter(document.fm_search);"><label for="userid">비밀번호</label>
+                    </div>
+                    <input type="hidden" name="computerNm" value="">
+
+                    <span class="check">
+                    	<input type="checkbox" name="checksave" id="remember" onclick="saveId(document.readForm);"><label for="remember"> 아이디 저장</label>
+                    </span>
+
+				</section>
+				<section>
+					<div id="btnbox" class="login-btn">
+                    
+                            <button type="button" onclick="smslogin();" class="outside-1_on" title="휴대폰 인증">휴대폰 인증</button>
+                            <span class="bar"></span>
+                            <button type="button" onclick="doLogin();" class="outside-2_on" title="공동인증서 인증">공동인증서 인증</button>
+                    
+					</div>
+                </section>
+                <aside class="side-button">
+                    <ul>
+                        <li class="pw-find"><a href="javascript:on_pwd_find();">비밀번호찾기</a></li>
+                        <li class="support"><a href="javascript:rsupport();">원격지원</a></li>
+                        <li class="favor"><a href="javascript:bookmark();">즐겨찾기등록</a></li>
+                        <li class="f-guide"><a href="javascript:guide();">HSP이용안내</a>
+                    </li></ul>
+                </aside>
+
+                <input type="hidden" name="UURL" value="https%3A%2F%2Fportal.hwgeneralins.com%2Fnls3%2Ffcs">
+                <input type="hidden" name="NONCE" value="PviGE7J%2Fw8RME1l6pkI5njh47650WyA9kmbR0850bebO%2BrGqTq1mp8%2B4CCw0H0s9cg7GpwPzuwkW%2FHWKJbatDA%3D%3D">
+                <input type="hidden" name="smsmsg">
+		        <input type="hidden" name="PKCS7SignedData" value="">
+            </form>
+            
+            <aside class="login-guide">
+                <ul>
+
+                    <li>외부망에서 접속시 <em>[인증번호]</em> 버튼을 클릭하여 추가인증 필수시행.</li>
+                    <li>Windows10, Internet Explorer 11, 1280 * 1024 환경에 최적화.</li>
+                </ul>
+            </aside>
+        </main>
+        <footer>
+            2018 © Hanwha General Insurance. Allrights Reserved
+        </footer>
+    </div>
+    
+    <form name="sendForm" action="https://portal.hwgeneralins.com/3rdParty/idPasswordLogin.jsp" method="post">
+        <input type="hidden" name="INIpluginData" value="">
+ 
+        <input type="hidden" name="UURL" value="https%3A%2F%2Fportal.hwgeneralins.com%2Fnls3%2Ffcs">
+		<input type="hidden" name="NONCE" value="PviGE7J%2Fw8RME1l6pkI5njh47650WyA9kmbR0850bebO%2BrGqTq1mp8%2B4CCw0H0s9cg7GpwPzuwkW%2FHWKJbatDA%3D%3D">
+		<input type="hidden" name="userid" value="">
+		<input type="hidden" name="password" value="">
+
+    </form>
+
+     
+
+<!--
+    포털측 요청으로 추가 (20180515)
+    사용자가 로그아웃 버튼을 클릭하지 않고 창을 닫는 경우에 대응한 로직 추가를 요청함
+ -->
+<iframe src="./hw/logout.html" scrolling="no" frameborder="0" style="width:0px;height:0px"></iframe>
+<iframe title="Cross Domain Process" src="./hw/crossd_iframe.html" style="position: absolute; width: 1px; height: 1px; left: -9999px; top: -9999px;"></iframe></body></html>

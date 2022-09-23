@@ -1,0 +1,22 @@
+function isMobile() {
+	var isMobile = false;
+	
+	if (window.innerWidth <= 780) {
+		isMobile = true;
+	}
+	
+	return isMobile;
+}
+
+function isMobileByPlatform() {
+    var isMobile = false;
+    var filter = "win16|win32|win64|mac"
+    
+    if (navigator.platform) {
+        if (filter.indexOf(navigator.platform.toLowerCase()) < 0) {
+            isMobile = true;
+        }
+    }
+    
+    return isMobile;
+}
