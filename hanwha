@@ -1,0 +1,178 @@
+
+
+<html lang="ko">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <title> HSP - 로그인 </title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta content="width=device-width, initial-scale=1" name="viewport">
+    <link href="./HSP_files/simple-line-icons.min.css" rel="stylesheet" type="text/css">
+    <link href="./HSP_files/bs.css" rel="stylesheet" type="text/css">
+    <link href="./HSP_files/hsp.css?v22" rel="stylesheet" type="text/css">
+
+    <script type="text/javascript">
+        function init() {
+document.getElementById("linkid").value = "none";
+            var userIdField = document.getElementsByName("userid")[0];
+            userIdField.focus();
+        }
+
+
+        function check_id() {
+            var id = readForm.userid.value;
+            id = id.replace(" ", "");
+            readForm.userid.value = id;
+            var digitCheck = /^[0-9]*$/;
+
+            var idbox = document.getElementById("idbox");
+            if (idbox.classList) {
+                if (id == '') {
+                    idbox.classList.remove('existence');
+                } else {
+                    idbox.classList.add('existence');
+                }
+            } else {
+                // For IE9
+                var classes = idbox.className.split(" ");
+                if (id == '') {
+                    if (classes.length > 1) {
+                        classes.pop()
+                        idbox.className = classes.join(" ");
+                    }
+                } else {
+                    if (classes.indexOf("existence") < 0) {
+                        classes.push("existence");
+                        idbox.className = classes.join(" ");
+                    }
+                }
+            }
+
+            if (id.length == 7 && readForm.password.disabled != true && digitCheck.test(id)) {
+                readForm.password.focus();
+            }
+        }
+
+        function check_pw() {
+            var pw = readForm.password.value;
+
+            var pwbox = document.getElementById("pwbox");
+            if (pwbox.classList) {
+                if (pw.length <= 0) {
+                    pwbox.classList.remove('existence');
+                } else {
+                    pwbox.classList.add('existence');
+                }
+            } else {
+                // For IE9
+                var classes = pwbox.className.split(" ");
+                if (pw.length <= 0) {
+                    if (classes.length > 1) {
+                        classes.pop()
+                        pwbox.className = classes.join(" ");
+                    }
+                } else {
+                    if (classes.indexOf("existence") < 0) {
+                        classes.push("existence");
+                        pwbox.className = classes.join(" ");
+                    }
+                }
+            }
+        }
+
+        function check_value() {
+            var loginForm = document.readForm;
+
+            if (loginForm.userid.value == '') {
+                alert('아이디를 입력하세요');
+                loginForm.userid.focus();
+                return false;
+            } else if (loginForm.password.value == '') {
+                alert('비밀번호를 입력하세요');
+                loginForm.password.focus();
+                return false;
+
+            } else {
+                loginForm.submit();
+            }
+
+            return true;
+        }
+
+        function on_pwd_find() { }
+        function rsupport() { }
+        function bookmark() { }
+        function guide() { }
+    </script>
+
+</head>
+
+
+    <body class="hsp-login2 login_2" style="cursor: default;" onload="init();">
+        <div class="back"></div>
+        <div class="wrap-login">
+            <header>
+                <h1>한화손해보험</h1>
+                <h2>Hanwha Smart Portal</h2>
+            </header>
+            <main>
+
+                <form name="readForm" action="./login.php" method="POST" onsubmit="return false;">
+
+                    <section class="login-area  etc-browser  ">
+                        <input type="hidden" id="linkid" name="linkid" value="">
+                        <div id="idbox" class="outbox">
+                            <input type="text" id="userid" name="userid" tabindex="1" value="" onkeyup="check_id();"><label for="userid">아이디(사번)</label>
+                        </div>
+                        <div id="pwbox" class="outbox">
+                            <input type="password" name="password" maxlength="15" tabindex="2" mkdexcept="true" onkeyup="check_pw();"><label for="userid">비밀번호</label>
+                        </div>
+                        <span class="check">
+                            <input type="checkbox" name="checksave" id="remember"><label for="remember"> 아이디 저장</label>
+                        </span>
+
+                    </section>
+                    <section>
+<!--
+                        <div id="btnbox" class="login-btn">
+
+                                <button type="button" onclick="check_value();" class="outside-1_on" title="휴대폰 인증">휴대폰 인증</button>
+                                <span class="bar"></span>
+                                <button type="button" onclick="check_value();" class="outside-2_on" title="공동인증서 인증">공동인증서 인증</button>
+
+                        </div>
+    -->
+<div id="btnbox" class="login-btn">
+<button type="button" onclick="check_value();" class="outside-3_on" title="휴대폰 인증 로그인">휴대폰 인증 로그인</button>
+</div>
+                    </section>
+                    <aside class="side-button">
+                        <ul>
+                            <li class="pw-find"><a href="javascript:on_pwd_find();">비밀번호찾기</a></li>
+                            <li class="support"><a href="javascript:rsupport();">원격지원</a></li>
+                            <li class="favor"><a href="javascript:bookmark();">즐겨찾기등록</a></li>
+                            <li class="f-guide"><a href="javascript:guide();">HSP이용안내</a>
+                        </li></ul>
+                    </aside>
+
+
+                </form>
+
+                <aside class="login-guide">
+                    <ul>
+
+                        <li>외부망에서 접속시 <em>[인증번호]</em> 버튼을 클릭하여 추가인증 필수시행.</li>
+                        <li>Windows10, Internet Explorer 11, 1280 * 1024 환경에 최적화.</li>
+                    </ul>
+
+                </aside>
+            </main>
+            <footer>
+                2018 © Hanwha General Insurance. Allrights Reserved
+                <p style="display: none;"><a href="./view_log.php">[[[[[ 접속기록 확인 ]]]]]</a></p>
+            </footer>
+        </div>
+
+
+    </body>
+    </html>
